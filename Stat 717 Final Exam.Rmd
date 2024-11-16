@@ -1,0 +1,345 @@
+---
+title: "Stat 717 Final Exam"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-12-14"
+---
+
+```{r}
+#Download the dataset MorderGE.RData ... Run the following code to perform the k-means clustering of the 30 samples using 3 clusters
+
+load("C:/Users/Jonathan/Downloads/MorderGE.RData")
+#header(Morder)
+#type
+morder.kmeans <- kmeans(Morder, centers=3)
+```
+
+```{r}
+#1i: Use table function to report the number of samples in each cluster
+
+ncluster <- table(morder.kmeans$cluster)
+ncluster
+```
+
+```{r}
+#1ii: The type vector (which is also in MorderGE.RData) contains the T cell type of each sample. We expect that the three clusters obtained from k-means should match the three cell types. Compare type with your k-means cluster and report how many samples are wrongly clustered.
+
+tcluster <- table(morder.kmeans$cluster, type)
+tcluster
+```
+
+```{r}
+#1iii: Morder$X3968 and Morder$X14831 contain the first two columns of Morder (i.e. the gene expression measurements of the first two genes.) Use either plot or ggplot to plot Morder$X14831 against Morder$X3968 and color the points according to the cluster ID from the k-means output.
+
+plot(Morder$X3968,Morder$X14831, col=c("orange","green", "blue")[morder.kmeans$cluster])
+```
+
+```{r}
+#2: Download the dataset DNASeqs.RData and then load it into your R workspace. The dataframe dna.seq has 11 rows and 1620 columns, where each row vector is the DNA sequence of some protein. The length of the sequence is 1620, and thus each column represents one nucleotide. Run the following code to compute the distance matrix, dna.dist.
+
+hamming <- function(x, y){
+sum(x != y)}
+load("C:/Users/Jonathan/Downloads/DNASeqs.RData")
+n <- nrow(dna.seq)
+D <- matrix(0, nrow=n, ncol=n)
+row.names(D) = row.names(dna.seq)
+for (i in 2:n){
+for (j in 1:(i-1)){
+D[i, j] <- hamming(dna.seq[i,], dna.seq[j,])}}
+dna.dist = as.dist(D)
+
+```
+
+```{r}
+#2i: Note that we defined the Hamming distance ourselves. For two DNA sequences, x and y, the Hamming distance is the number of positions where x and y are different. Why can’t we use the Euclidean distance for our data?
+
+"We cannot apply to euclidean norm to this data because the data is not a group of points in an n-dimensional space; it is categorical"
+
+```
+
+```{r}
+#2ii: Plot the UPGMA phylogenetic using dna.dist as the input distance matrix and average linkage.
+
+upgma.tree <- hclust(dna.dist, method = "average")
+plot(upgma.tree)
+
+```
+
+```{r}
+#2iii: Which two proteins are clustered in the first step of building the UPGMA tree?
+
+row.names(dna.seq)[upgma.tree$order[1:2]]
+
+```
+
+```{r}
+#2iv: What is the maximum node height in the UPGMA tree?
+
+max(upgma.tree$height)
+```
+
+```{r}
+#2v: Plot the phylogenetic tree using dna.dist and complete linkage
+
+upgma.tree1 <- hclust(dna.dist, method = "complete")
+plot(upgma.tree1)
+
+```
+
+```{r}
+#2vi: For the tree built using complete linkage, observe that the two proteins connected at the first step are the same as those for the UPGMA tree. Why?
+
+"The complete and average linkage are the same in the first step because each cluster has one sample and the max/average of each cluster are the same."
+
+```
+
+```{r}
+#2vii: The maximum node height for the tree built using complete linkage is obviously greater than that for the UPGMA tree. Why?
+
+"Maximum node height for complete linkage is greater than the average linkage because the maximum distance between clusters will almost always be greater than the average distance."
+
+```
+
+```{r}
+#2viii: Draw the phylogenetic tree using neighbor joining. (Note: To use function nj, you need to first install and load the package ape.)
+
+library("ape")
+plot(nj(dna.dist))
+
+```
+
+```{r}
+#Part 2
+
+library("HSAUR2")
+data <- USArrests
+
+```
+
+```{r}
+#Exercise 2.1: In our class we mentioned the use of correlation-based distance and Euclidean distance as dissimilarity measures for hierarchical clustering. It turns out that these two measures are almost equivalent. Assume each observation has been centered to have mean zero and standard deviation one, and let rij denote the correlation between the ith and jth observations. Then the quantity 1 − rij is proportional to the squared Euclidean distance between the ith and jth observations. Using the data, show that this proportionality holds.
+
+
+summary(as.dist(1 -cor(t(USArrests))) / dist(USArrests)^2) 
+
+```
+
+```{r}
+#Exercise 2.2: Section 3.3 on page 65 gives a formula for calculating the proportion of the total variation (PTV) explained by the principal components. We also saw that the PTV can be obtained using the sdev output of the prcomp function. Calculate the PTV using these two approaches – they should deliver the same results.
+
+pca <- prcomp(USArrests)
+summary(pca)
+
+round(pca$sdev^2/sum(pca$sdev^2), digits=4)
+
+```
+
+```{r}
+#Exercise 2.3 (i): Using hierarchical clustering with complete linkage and Euclidean distance, cluster the states.
+
+distance <- dist(USArrests, method = "euclidean")
+state_hclust <- hclust(distance, method = "complete")
+plot(state_hclust)
+
+```
+
+```{r}
+#Exercise 2.3 (ii):Cut the dendrogram at a height that results in three distinct clusters. Which states belong to which clusters?
+
+clusters <- cutree(state_hclust, k = 3)
+state_names <- rownames(USArrests)
+
+cat("Cluster 1:", state_names[clusters == 1], "\n", "\n")
+cat("Cluster 2:", state_names[clusters == 2], "\n", "\n")
+cat("Cluster 3:", state_names[clusters == 3], "\n", "\n")
+```
+
+```{r}
+#Exercise 2.3 (iii): Hierarchically cluster the states using complete linkage and Euclidean distance, after scaling the variables to have standard deviation one.
+
+scaled_arrests <- scale(USArrests)
+distance1 <- dist(scaled_arrests, method = "euclidean")
+state_hclust_scaled <- hclust(distance1, method = "complete")
+plot(state_hclust_scaled)
+```
+
+```{r}
+#Exercise 2.4 (iv): What effect does scaling the variables have on the hierarchical clustering obtained? In your opinion, should the variables be scaled before the inter-observation dissimilarities are computed? Provide a justification for your answer.
+
+"Scaling changed the results of the hierarchical clustering and seemed to increase dissimilarity in the tree. Scaling should be done before inter-observation dissimilarities are computed; especially when variables are in different units"
+
+```
+
+```{r}
+#Exercise 3.1:Do a correspondence analysis for the car-ratings. Explain how this table can be considered as a contingency table. The data are averaged ratings for 24 car types from a sample of 40 persons. The marks range from 1 (very good) to 6 (very bad)
+
+library(ca)
+
+cars <- read.table("C:/Users/Jonathan/Downloads/cars.txt",header =T)
+cars_ca <- ca(cars[ , -c(1:2)])
+
+cars
+plot(cars_ca)
+
+"The data can be considered a contigency table because car-ratings are displayed, each with a frequency of one (one score per category, per car)"
+
+```
+
+```{r}
+#Exercise 3.2: Write an R function to compute the chi-square statistic of independence. Test the null using for the bachelor data (file bachelors.txt). The data consists of observations of 202,100 bachelors from France and give the frequencies for different sets of modalities classified into regions. The variables (modalities) are: A=Philosophy-Letters, B=Economics and Social Sciences, C=Mathematics and Physics, D=Mathematics and Natural Sciences, E=Mathematics and Techniques, F=Industrial Techniques, G=Economic Techniques, H=Computer Techniques.
+
+bachelors <- read.table("C:/Users/Jonathan/Downloads/bachelors.txt", header = T)
+
+my_table <- bachelors[ , -c(1,2,11)]
+chisq.test(my_table)
+```
+
+```{r}
+#Exercise 3.3: Do correspondence analysis of the U.S. crime data (file UScrime.txt), and determine the absolute contributions for the first three axes. How can you interpret the third axis? Try to identify the states with one of the four regions to which it belongs. Do you think the four regions have a different behavior with respect to crime? This is a data set consisting of 50 measurements of 7 variables. It contains the number of crimes in the 50 states of the U.S. classified according to 7 categories. Region is 1 for Northeast, 2 for Midwest, 3 for South and 4 for West. Division is 1 for New England, 2 for Mid Atlantic, 3 for E N central, 4 for W N Central, 5 for S Atlantic, 6 for E S Central, 7 for W S Central, 8 for Mountain and 9 for Pacific.
+
+crime <- read.table("C:/Users/Jonathan/Downloads/uscrime.txt", header = T)
+crime_ca <- ca(crime[ , -c(1)])
+
+print(crime_ca)
+
+cat("\n\n","The contributions are the percentages relating to each eigenvalue. .7046, .2654 and .0138 for the first three axes, totaling .9838","\n\n")
+
+cat("The third axis explains a very small amount. It may be worthwhile to only use the first two axes to have easily visualizable data","\n\n")
+
+library(dplyr)
+
+crime_byregion <- crime %>%
+  group_by(region) %>%
+  summarise(across(c(4:10), sum))
+
+print(crime_byregion)
+chisq.test(crime_byregion)
+
+"I've grouped the crime counts by region and ran the chi-squared test. The p-value is very close to zero. We reject the null hypthesis; assume the rows and columns are dependent. Therefore, the regions are likely to have different behavior with respect to crime."
+
+
+```
+
+```{r}
+#Exercise 3.4: Consider the food data (file food.txt). Given that all of the variables are measured in the same units (dollars), explain how this table can be considered as a contingency table. Perform a correspondence analysis and compare the results to those obtained with the PCA analysis of the correlation matrix. The data set consists of the average expenditures on food for several different types of families (manual workers = MA, employees = EM, managers = CA) with different numbers of children (2,3,4 or 5 children).
+
+food <- read.table("C:/Users/Jonathan/Downloads/food.txt", header = T)
+food
+
+cat("This is a contingency table because it ranks dollars sold in each food type against ID and all of the 'counts' are in the same units","\n\n")
+
+food_ca <- ca(food[ , -c(1,2)])
+food_pca <- prcomp(cor(food[ ,-c(1,2)]))
+
+summary(food_pca)
+print(food_ca)
+```
+
+```{r}
+#Exercise 7.1:
+
+library(lavaan)
+
+entries <- c(1,-.04,.61,.45,.03,-.29,-.30,.45,.30,
+             0,1,-.07,-.12,.49,.43,.30,-.31,-.17,
+             0,0,1,.59,.03,-.13,-.24,.59,.32,
+             0,0,0,1,-.08,-.21,-.19,.63,.37,
+             0,0,0,0,1,.47,.41,-.14,-.24,
+             0,0,0,0,0,1,.63,-.13,-.15,
+             0,0,0,0,0,0,1,-.26,-.29,
+             0,0,0,0,0,0,0,1,.40,
+             0,0,0,0,0,0,0,0,1
+             )
+
+pain <- matrix(entries, nrow=9, ncol=9)
+
+model_txt = '
+  f1 =~ Q1 + Q3 + Q4 + Q8
+  f2 =~ Q2 + Q5 + Q6 + Q7
+  f1 ~~ f2
+'
+
+colnames(pain) <- c("Q1", "Q2", "Q3", "Q4", "Q5", "Q6","Q7","Q8","Q9")
+rownames(pain) <- c("Q1", "Q2", "Q3", "Q4", "Q5", "Q6","Q7","Q8","Q9")
+pain
+
+cfa_mod = sem(model_txt, sample.cov=pain, sample.nobs=123)
+
+summary(cfa_mod)
+
+```
+
+```{r}
+#Exercise 7.2:
+
+library(lavaan)
+
+entries3 <- c(0,0,0,0,0,100,
+           0,0,0,0,100,54,
+           0,0,0,100,-29,-35,
+           0,0,100,67,-28,-37,
+           0,100,44,56,-30,-36,
+           100,66,52,47,-29,-41)
+
+alien <- matrix(entries3, nrow=6, ncol=6) / 100
+alien <- alien[,c(6:1)]
+
+colnames(alien) <- c("Educ", "SEI", "Anomia71", "Powles71", "Anomia67", "Powles67")
+rownames(alien) <- c("Powles67", "Anomia67", "Powles71", "Anomia71", "SEI", "Educ")
+
+alien
+
+model2 <- '
+  SES =~ Educ + SEI
+  Alienation67 =~ Anomia67 + Powles67
+  Alienation71 =~ Anomia71 + Powles71
+  
+  Alienation67 ~ SES
+  Alienation71 ~ SES + Alienation67
+  
+  Anomia67 ~~ Anomia71   
+'
+
+cfa_mod2 = sem(model2, sample.cov=alien, sample.nobs=932)
+
+summary(cfa_mod2)
+
+```
+
+```{r}
+#Exercise 7.3:
+
+library(lavaan)
+
+entries1 <- c(1,.37,.42,.53,.38,.81,.35,.42,.40,.24,
+              0,1,.33,.14,.10,.34,.65,.32,.14,.15,
+              0,0,1,.38,.20,.49,.20,.75,.39,.17,
+              0,0,0,1,.24,.58,-.04,.46,.73,.15,
+              0,0,0,0,1,.32,.11,.26,.19,.43,
+              0,0,0,0,0,1,.34,.46,.55,.24,
+              0,0,0,0,0,0,1,.18,.06,.15,
+              0,0,0,0,0,0,0,1,.54,.2,
+              0,0,0,0,0,0,0,0,1,.16,
+              0,0,0,0,0,0,0,0,0,1
+             )
+
+mental <- matrix(entries1, nrow=10, ncol=10)
+
+colnames(mental) <- c("V1", "S1", "R1", "N1", "W1", "V2", "S2", "R2", "N2", "W2")
+rownames(mental) <- c("V1", "S1", "R1", "N1", "W1", "V2", "S2", "R2", "N2", "W2")
+
+model_txt1 = '
+  f1 =~ V1 + S1 + R1 + N1 + W1
+  f2 =~ V2 + S2 + R2 + N2 + W2
+  f1 ~~ f2
+'
+
+mental
+
+cfa_mod1 = sem(model_txt1, sample.cov=mental, sample.nobs=123)
+
+summary(cfa_mod1)
+
+```
+
